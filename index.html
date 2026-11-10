@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Planning Sibella</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="style.css">
+<style>
+[hidden]{display:none!important}
+.wrap{max-width:none}
+.acces{display:flex;flex-direction:column;align-items:flex-start;gap:12px;max-width:560px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:22px}
+.acces h2{margin:0;font-size:22px}
+.qui{display:flex;flex-direction:column;align-items:flex-end;font-size:13px;color:var(--muted)}
+.qui b{color:var(--ink);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <div class="brand">
+      <img class="logo" alt="Cabinet Sibella, géomètres-experts fonciers" src="logo.png">
+      <div class="ttl">
+        <h1>Planning des équipes</h1>
+        <div class="sub">Personnel, véhicules et matériel des quatre sites.</div>
+      </div>
+    </div>
+    <div class="rowbtns" style="align-items:center">
+      <div class="qui"><b id="qui"></b><span id="droits"></span></div>
+      <button class="btn" id="btnImport" hidden>Importer des données</button>
+      <button class="btn" id="btnOut" hidden>Se déconnecter</button>
+    </div>
+  </header>
+  <div class="msg" id="plMsgGlobal" role="status" hidden></div>
+  <section class="acces" id="loginBox" hidden>
+    <h2>Connexion</h2>
+    <div class="note">Connectez-vous avec votre compte Microsoft 365 du cabinet pour consulter le planning.</div>
+    <button class="btn primary" id="btnLogin">Se connecter avec Microsoft</button>
+  </section>
+  <section id="planningView" aria-label="Planning" hidden></section>
+</div>
+<input type="file" id="fichierImport" accept="application/json,.json" hidden>
+<div class="toast" id="toast" hidden></div>
+<script src="vendor/msal-browser.min.js"></script>
+<script src="config.js"></script>
+<script src="store.js"></script>
+<script src="app.js"></script>
+<script src="planning.js"></script>
+</body>
+</html>
