@@ -39,7 +39,7 @@
     var S = window.Store;
     $('qui').textContent = S.nom();
     $('droits').textContent = S.canWrite() ? 'Modification autorisée' : 'Consultation seule';
-    $('btnImport').hidden = !S.canWrite();
+    $('btnImport').hidden = !(S.canWrite() && S.email() === String(window.PLANNING_CONFIG.administrateur || '').toLowerCase());
   }
   function message(t){ var e = $('plMsgGlobal'); e.textContent = t || ''; e.hidden = !t; }
 
