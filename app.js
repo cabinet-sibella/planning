@@ -19,14 +19,14 @@
 
   function indexer(r){
     refs = r || refs;
-    rows = refs.rows.map(function(x){ var lib = x.lib || String(x.ref); return Object.assign({}, x, {lib: lib, _s: norm([lib, x.dev, x.client, x.commune, x.mission, x.avancement].join(' '))}); });
+    rows = refs.rows.map(function(x){ var lib = x.lib || String(x.ref); return Object.assign({}, x, {lib: lib, _s: norm([lib, x.client, x.commune, x.mission].join(' '))}); });
     if (window.SIBELLA_rows) window.SIBELLA_rows();
   }
   window.SIBELLA_refs = indexer;
   window.SIBELLA = {
     rows: function(){ return rows; },
     find: function(id){ id = String(id); for (var i = 0; i < rows.length; i++) if (rows[i].id === id) return rows[i]; for (var j = 0; j < rows.length; j++) if (String(rows[j].ref) === id) return rows[j]; return null; },
-    isProg: function(r){ return r.po === true || r.po === false ? r.po : aFaire(r); },
+    isProg: function(r){ if (typeof r.prog === 'boolean') return r.prog; return r.po === true || r.po === false ? r.po : aFaire(r); },
     db: function(){ return window.Store.db; },
     canWrite: function(){ return window.Store.canWrite(); },
     downloads: function(){ return null; },
