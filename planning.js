@@ -329,6 +329,7 @@
     $('plMain').className = 'pl-main' + (voirAside ? '' : ' ferme');
     $('plAside').hidden = !voirAside;
     $('plAsideBtn').hidden = !peut();
+    ['plNew', 'plRes', 'plAct'].forEach(function(id){ $(id).hidden = !peut(); });
     if (voirAside) aside();
     if (!Object.keys(res).length && !Object.keys(act).length) $('plMsg').textContent = 'Aucune ressource ni activité enregistrée pour l\'instant : utilisez « Ressources » et « Activités » pour les créer.';
     else $('plMsg').textContent = '';
