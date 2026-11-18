@@ -147,6 +147,7 @@
       '.pl-b.conf{outline:2px dashed var(--rouge);outline-offset:-2px}',
       '.pl-b.conf b{color:inherit}',
       '.pl-b.fait{opacity:.6}',
+      '.pl-rb{font-style:normal;font-weight:800;color:#c8102e}',
       '.pl-b{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}',
       '.pl-b.dep{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),inset 0 -3px 0 #141414}',
       '.pl-b.annule{opacity:.4;text-decoration:line-through}',
@@ -303,7 +304,7 @@
         var l1 = court ? (lb.ref || (sansRef ? 's/réf.' : (lb.act || lb.txt || 'Tâche').slice(0, 5))) : (lb.ref ? lb.ref + ' ' + (lb.lieu || lb.txt) : sansRef ? 's/réf. ' + (lb.lieu || lb.txt) : (lb.act || lb.txt || 'Tâche')) + (dep ? ' → ' + dep : '');
         var l2 = court ? '' : [brig.length ? '(' + brig.join('/') + ')' : '', (lb.ref || sansRef) ? (lb.lieu ? lb.txt : '') : (lb.act ? (lb.txt || lb.lieu) : lb.lieu), (lb.ref || sansRef) ? lb.act : ''].filter(Boolean).join(' · ');
         if (t.statut === 'fait') l1 = '✓ ' + l1;
-        html += '<button type="button" class="pl-b' + (conf[t.id + '|' + id] ? ' conf' : '') + (t.statut === 'fait' ? ' fait' : '') + (t.statut === 'annule' ? ' annule' : '') + (hit ? '' : ' terne') + (dep ? ' dep' : '') + '" draggable="true" data-t="' + esc(t.id) + '" data-r="' + esc(id) + '" title="' + esc(titre) + '" style="grid-column:' + (it.a + 1) + ' / span ' + (it.z - it.a + 1) + ';grid-row:' + (it.k + 1) + ';background:' + esc(fond) + ';color:' + encre(c) + '"><b>' + esc(l1) + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + '</button>';
+        html += '<button type="button" class="pl-b' + (conf[t.id + '|' + id] ? ' conf' : '') + (t.statut === 'fait' ? ' fait' : '') + (t.statut === 'annule' ? ' annule' : '') + (hit ? '' : ' terne') + (dep ? ' dep' : '') + '" draggable="true" data-t="' + esc(t.id) + '" data-r="' + esc(id) + '" title="' + esc(titre) + '" style="grid-column:' + (it.a + 1) + ' / span ' + (it.z - it.a + 1) + ';grid-row:' + (it.k + 1) + ';background:' + esc(fond) + ';color:' + encre(c) + '"><b>' + (t.activite === 'a-bornage' && lb.ref && l1.indexOf(lb.ref) === 0 ? '<em class="pl-rb">' + esc(lb.ref) + '</em>' + esc(l1.slice(lb.ref.length)) : esc(l1)) + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + '</button>';
       });
       return '<div class="pl-r" data-res="' + esc(id) + '"><div class="pl-n" style="--cg:' + esc(couleur || 'transparent') + '"><b>' + esc(nom) + '</b><span>' + esc(sous || '') + '</span></div><div class="pl-t" style="' + cols + '">' + html + '</div></div>';
     }
