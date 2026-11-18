@@ -47,6 +47,9 @@
   function encre(hex){ var m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#141414'; var n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#141414' : '#ffffff'; }
   function toast(t){ if (S && S.toast) S.toast(t); }
   function peut(){ return !!db && S.canWrite(); }
+  // bouton « PDF du mois » : réservé à ces comptes (config.js peut les remplacer avec une liste « pdf »)
+  var PDF_OK = ['charles.deboos@cabinetsibella.com', 'guillaume.berwanger@cabinetsibella.com'];
+  function admin(){ try { var l = (window.PLANNING_CONFIG && window.PLANNING_CONFIG.pdf) || PDF_OK; return l.map(function(x){ return String(x).toLowerCase(); }).indexOf(String(window.Store.email() || '').toLowerCase()) >= 0; } catch (e){ return false; } }
   function affaire(ref){ return ref ? S.find(String(ref)) : null; }
   function rangSite(x){ var i = sites.indexOf(x || ''); return i < 0 ? 99 : i; }
   // toutes les ressources actives d'un type, le site choisi en premier puis par site
@@ -197,6 +200,28 @@
       '.pl-m table{min-width:0;width:100%}',
       '.pl-m td{padding:6px 6px;vertical-align:middle}',
       '.pl-m input[type=color]{width:42px;height:32px;padding:0;border:1px solid var(--line);border-radius:4px;background:none}',
+      '#plPrint{display:none}',
+      '@media print{@page{size:A4 landscape;margin:8mm}body>*:not(#plPrint){display:none!important}body{background:#fff!important}#plPrint{display:block;color:#141414;font-family:inherit;-webkit-print-color-adjust:exact;print-color-adjust:exact}}',
+      '.pp-page{break-after:page;page-break-after:always}',
+      '.pp-page:last-child{break-after:auto;page-break-after:auto}',
+      '.pp-ent{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #c8102e;padding-bottom:4px;margin-bottom:6px;font-size:13px}',
+      '.pp-t{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px}',
+      '.pp-t th,.pp-t td{border:1px solid #cfcac0;padding:1px 2px;vertical-align:top}',
+      '.pp-t tbody tr:last-child td,.pp-t tbody tr:last-child th{border-bottom:1px solid #cfcac0}',
+      '.pp-t{border-bottom:1px solid #cfcac0}',
+      '.pp-t td.pm,.pp-t th.pm{border-left-style:dotted}',
+      '.pp-t thead th{background:#f1efe8;font-weight:700;text-align:left}',
+      '.pp-t .pp-h{font-size:7.5px;font-weight:400;text-transform:uppercase;color:#666}',
+      '.pp-t .hors{background:#f4f4f4;color:#999}',
+      '.pp-t tbody th{text-align:left;font-size:10px}',
+      '.pp-t tbody th span{display:block;font-weight:400;font-size:8px;color:#666}',
+      '.pp-ss td{background:#ece9e2;font-weight:700;font-size:9px}',
+      '.pp-b{border-radius:2px;padding:1px 3px;overflow:hidden}',
+      '.pp-b b,.pp-b span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.pp-b em{font-style:normal;font-weight:800;color:#c8102e}',
+      '.pp-b span{font-size:8px}',
+      '.pp-b .pp-n{white-space:normal;font-style:italic;max-height:2.4em}',
+      '.pp-pied{margin-top:4px;font-size:8px;color:#666;text-align:right}',
       '.pl-m .mini{font:inherit;font-size:12.5px;padding:4px 8px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink);cursor:pointer}'
     ].join('\n');
     document.head.appendChild(st);
@@ -216,6 +241,7 @@
         '<button class="btn" id="plRes">Ressources</button>' +
         '<button class="btn" id="plAct">Activités</button>' +
         '<button class="btn" id="plXls" hidden>Exporter la période</button>' +
+        '<button class="btn" id="plPdf" hidden title="Une page par semaine, personnel seulement">PDF du mois</button>' +
         '<button class="btn" id="plAsideBtn"></button>' +
       '</div>' +
       '<div class="pl-leg" id="plLeg"></div>' +
@@ -235,6 +261,7 @@
     $('plRes').onclick = gererRes;
     $('plAct').onclick = gererAct;
     $('plXls').onclick = exporter;
+    $('plPdf').onclick = imprimerMois;
     $('plAsideBtn').onclick = function(){ etat.aside = !etat.aside; garder(); dessiner(); };
     $('plOvX').onclick = fermer;
     $('plOv').addEventListener('click', function(e){ if (e.target === $('plOv')) fermer(); });
@@ -336,6 +363,7 @@
     $('plAside').hidden = !voirAside;
     $('plAsideBtn').hidden = !peut();
     ['plNew', 'plRes', 'plAct'].forEach(function(id){ $(id).hidden = !peut(); });
+    $('plPdf').hidden = !admin();
     if (voirAside) aside();
     if (!Object.keys(res).length && !Object.keys(act).length) $('plMsg').textContent = 'Aucune ressource ni activité enregistrée pour l\'instant : utilisez « Ressources » et « Activités » pour les créer.';
     else $('plMsg').textContent = '';
@@ -584,6 +612,59 @@
   }
 
   // ---------- export Excel de la période affichée
+  // ---------- PDF du mois : une page par semaine, personnel seulement (impression du navigateur → « Enregistrer au format PDF »)
+  function imprimerMois(){
+    if (!admin()) return;
+    var ref = etat.vue === 'semaine' ? plus(lundi(etat.ancre), 3) : etat.ancre;
+    var m = ref.getMonth(), an = ref.getFullYear(), premier = new Date(an, m, 1), dernier = new Date(an, m + 1, 0);
+    var pers = listeRes('personne'), semaines = [];
+    for (var l = lundi(premier); l <= dernier; l = plus(l, 7)){ for (var q = 0; q < 7; q++){ var x0 = plus(l, q); if (x0.getMonth() === m && ouvre(x0)){ semaines.push(l); break; } } }
+    var ids = Object.keys(taches);
+    var pages = semaines.map(function(l){
+      var js = []; for (var i = 0; i < 7; i++){ var x = plus(l, i); if (ouvre(x)) js.push(x); }
+      var vs = []; js.forEach(function(d){ var h = jnum(d) * 2; vs.push(h, h + 1); });
+      var N = vs.length, corps = '', der = null;
+      pers.forEach(function(r){
+        var items = [];
+        ids.forEach(function(id){
+          var t = taches[id]; if (t.statut === 'annule' || (t.personnes || []).indexOf(r.id) < 0) return;
+          var b = bornes(t), a = -1, z = -1;
+          for (var i = 0; i < N; i++) if (vs[i] >= b[0] && vs[i] <= b[1]){ if (a < 0) a = i; z = i; }
+          if (a >= 0) items.push({t: t, a: a, z: z});
+        });
+        items.sort(function(x, y){ return (x.a - y.a) || (y.z - x.z); });
+        var pistes = [];
+        items.forEach(function(it){ var k = 0; while (pistes[k] != null && pistes[k] >= it.a) k++; pistes[k] = it.z; it.k = k; });
+        var L = Math.max(1, pistes.length);
+        if (!etat.site && (r.site || '') !== der){ der = r.site || ''; corps += '<tr class="pp-ss"><td colspan="' + (N + 1) + '">' + esc(der || 'Site non renseigné') + '</td></tr>'; }
+        for (var k = 0; k < L; k++){
+          var tr = '<tr' + (k === L - 1 ? ' class="pp-fin"' : '') + '>';
+          if (k === 0) tr += '<th rowspan="' + L + '" style="border-left:4px solid ' + esc(r.couleur || coulSite(r.site)) + '"><b>' + esc(r.code || r.nom) + '</b><span>' + esc(r.code && r.nom !== r.code ? r.nom : '') + '</span></th>';
+          for (var i = 0; i < N; i++){
+            var it = items.filter(function(x){ return x.k === k && x.a === i; })[0];
+            var hors = dH(vs[i]).getMonth() !== m ? ' hors' : '';
+            if (!it){ tr += '<td class="' + (i % 2 ? 'pm' : 'am') + hors + '"></td>'; continue; }
+            var t = it.t, lb = libelle(t), a = act[t.activite] || {}, c = a.absence ? (a.couleur || '#141414') : coulTache(t)[0];
+            var brig = (t.personnes || []).filter(function(p){ return res[p]; }).map(nomRes);
+            var tete = lb.ref ? (t.activite === 'a-bornage' ? '<em>' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || lb.txt) : esc(lb.act || lb.txt || 'Tâche');
+            var l2 = [brig.length > 1 ? '(' + brig.join('/') + ')' : '', lb.ref ? (lb.lieu ? lb.txt : '') : (lb.act ? (lb.txt || lb.lieu) : lb.lieu)].filter(Boolean).join(' · ');
+            tr += '<td colspan="' + (it.z - it.a + 1) + '" class="' + (i % 2 ? 'pm' : 'am') + '"><div class="pp-b" style="background:' + esc(c) + ';color:' + encre(c) + '"><b>' + (t.statut === 'fait' ? '✓ ' : '') + tete + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + (lb.ref && lb.act ? '<span>' + esc(lb.act) + '</span>' : '') + (t.note ? '<span class="pp-n">' + esc(t.note) + '</span>' : '') + '</div></td>';
+            i = it.z;
+          }
+          corps += tr + '</tr>';
+        }
+      });
+      var tete = '<tr><th class="pp-c"></th>' + js.map(function(d){ return '<th colspan="2" class="pp-d' + (d.getMonth() !== m ? ' hors' : '') + '">' + esc(JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOISL[d.getMonth()]) + '</th>'; }).join('') + '</tr>' +
+        '<tr><th class="pp-c"></th>' + js.map(function(){ return '<th class="pp-h">matin</th><th class="pp-h pm">après-midi</th>'; }).join('') + '</tr>';
+      return '<section class="pp-page"><div class="pp-ent"><b>Cabinet Sibella · Planning des équipes</b><span>Semaine ' + semIso(l) + ' · du ' + frc(iso(js[0])) + ' au ' + frc(iso(js[js.length - 1])) + '/' + js[js.length - 1].getFullYear() + (etat.site ? ' · ' + esc(etat.site) : ' · tous les sites') + '</span></div>' +
+        '<table class="pp-t"><colgroup><col style="width:120px">' + vs.map(function(){ return '<col>'; }).join('') + '</colgroup><thead>' + tete + '</thead><tbody>' + (corps || '<tr><td colspan="' + (N + 1) + '">Aucun collaborateur.</td></tr>') + '</tbody></table>' +
+        '<div class="pp-pied">' + esc(MOISL[m].charAt(0).toUpperCase() + MOISL[m].slice(1) + ' ' + an) + ' · imprimé le ' + frc(iso(new Date())) + '/' + new Date().getFullYear() + '</div></section>';
+    });
+    var z = $('plPrint'); if (!z){ z = document.createElement('div'); z.id = 'plPrint'; document.body.appendChild(z); }
+    z.innerHTML = pages.join('');
+    var titre = document.title; document.title = 'Planning Sibella - ' + MOISL[m] + ' ' + an;
+    setTimeout(function(){ window.print(); document.title = titre; }, 50);
+  }
   function exporter(){
     var dl = S.downloads(); if (!dl || !window.XLSX) return;
     var js = jours(), entete = ['Ressource'];
