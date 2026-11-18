@@ -10,6 +10,7 @@
   var PAL = ['#a9dcd6', '#f3bcd3', '#f3e3a0'];
   var etat = {vue: 'semaine', ancre: lundi(new Date()), samedi: false, types: {personne: true, vehicule: false, materiel: false}, q: '', aside: true, site: ''};
   try { var mem = JSON.parse(localStorage.getItem('sibella-planning') || '{}'); ['vue','samedi','types','aside','site'].forEach(function(k){ if (mem[k] != null && (k !== 'types' || mem.tv === 2)) etat[k] = mem[k]; }); } catch (e){}
+  try { etat.moi = localStorage.getItem('sibella-planning-moi') || ''; } catch (e){}
   function garder(){ try { localStorage.setItem('sibella-planning', JSON.stringify({tv: 2, vue: etat.vue, samedi: etat.samedi, types: etat.types, aside: etat.aside, site: etat.site})); } catch (e){} }
 
   var TYPES = [['personne', 'Personnel'], ['vehicule', 'Véhicules'], ['materiel', 'Matériel']];
@@ -200,6 +201,16 @@
       '.pl-m table{min-width:0;width:100%}',
       '.pl-m td{padding:6px 6px;vertical-align:middle}',
       '.pl-m input[type=color]{width:42px;height:32px;padding:0;border:1px solid var(--line);border-radius:4px;background:none}',
+      '#plMoi{display:none}',
+      '.pl-ag-j{margin:16px 0 6px;font-weight:700;font-size:16px;text-transform:none}',
+      '.pl-ag-j span{font-size:12px;font-weight:700;color:#fff;background:#c8102e;border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:2px}',
+      '.pl-ag-v{color:var(--muted);font-size:14px;padding:4px 2px}',
+      '.pl-ag-c{display:block;background:var(--surface);border:1px solid var(--line);border-left:6px solid #999;border-radius:6px;padding:8px 10px;margin:0 0 8px;font-size:14px;line-height:1.35;cursor:pointer}',
+      '.pl-ag-c b{display:block;font-size:15px}',
+      '.pl-ag-q{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}',
+      '.pl-ag-s{font-size:13px;color:var(--muted)}',
+      '.pl-ag-n{font-size:13px;font-style:italic;margin-top:2px}',
+      '@media (max-width:760px){.mast .sub,.pl-leg,#planningView>.note,[aria-label="Ressources affichées"],.pl-bar .chk,#plRes,#plAct,#plXls,#plAsideBtn{display:none!important}.mast{padding-top:8px!important;padding-bottom:8px!important;gap:8px!important}.mast .logo{height:36px!important}.mast h1{font-size:22px!important;margin:0!important}.pl-bar{gap:8px!important;position:static!important;top:auto!important}.pl-bar #plQ{flex:1 1 100%;width:100%;min-width:0}.pl-bar #plMoi,.pl-bar #plSite{flex:1 1 40%;width:auto;min-width:0;font-size:15px;padding:8px 10px}.pl-bar .btn,.pl-bar .grp button{padding:8px 12px}.pl-per{flex:1 1 auto}.mast .rowbtns{flex-wrap:nowrap}.pl-bar #plMoi{display:block}.pl-box{border:0!important;background:transparent!important;overflow:visible!important}}',
       '#plPrint{display:none}',
       '@media print{@page{size:A4 landscape;margin:8mm}body>*:not(#plPrint){display:none!important}body{background:#fff!important}#plPrint{display:block;color:#141414;font-family:inherit;-webkit-print-color-adjust:exact;print-color-adjust:exact}}',
       '.pp-page{break-after:page;page-break-after:always}',
@@ -235,6 +246,7 @@
         '<div class="grp" role="group" aria-label="Vue"><button data-v="jour">Jour</button><button data-v="semaine">Semaine</button><button data-v="mois">Mois</button></div>' +
         '<div class="grp" role="group" aria-label="Ressources affichées">' + TYPES.map(function(t){ return '<button data-ty="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>' +
         '<select id="plSite" aria-label="Site"></select>' +
+        '<select id="plMoi" aria-label="Personne"></select>' +
         '<label class="chk"><input type="checkbox" id="plSam"> Samedi</label>' +
         '<input type="search" id="plQ" placeholder="Réf., client, commune, activité…" autocomplete="off">' +
         '<button class="btn primary" id="plNew">+ Nouvelle tâche</button>' +
@@ -255,6 +267,8 @@
     [].forEach.call(root.querySelectorAll('[data-v]'), function(b){ b.onclick = function(){ etat.vue = b.dataset.v; if (etat.vue === 'semaine') etat.ancre = lundi(etat.ancre); garder(); tout(); }; });
     [].forEach.call(root.querySelectorAll('[data-ty]'), function(b){ b.onclick = function(){ etat.types[b.dataset.ty] = !etat.types[b.dataset.ty]; garder(); dessiner(); }; });
     $('plSite').onchange = function(){ etat.site = $('plSite').value; garder(); dessiner(); };
+    $('plMoi').onchange = function(){ etat.moi = $('plMoi').value; try { localStorage.setItem('sibella-planning-moi', etat.moi); } catch (e){} dessiner(); };
+    if (MQ){ var rd = function(){ dessiner(); }; if (MQ.addEventListener) MQ.addEventListener('change', rd); else if (MQ.addListener) MQ.addListener(rd); }
     $('plSam').onchange = function(){ etat.samedi = $('plSam').checked; garder(); dessiner(); };
     var tq = null; $('plQ').oninput = function(){ clearTimeout(tq); tq = setTimeout(function(){ etat.q = norm($('plQ').value.trim()); dessiner(); }, 120); };
     $('plNew').onclick = function(){ var j = jours()[0], auj = iso(new Date()); var d = (etat.vue !== 'jour' && auj >= iso(j) && auj <= iso(jours()[jours().length - 1])) ? auj : iso(j); editer(null, {date_debut: d, date_fin: d}); };
@@ -277,6 +291,42 @@
 
   // ---------- grille
   var vis = [], lignesVis = {};
+  // ---------- vue téléphone : liste jour par jour au lieu de la grille
+  var MQ = window.matchMedia ? window.matchMedia('(max-width: 760px)') : null;
+  var agVu = false;
+  function mobile(){ return !!(MQ && MQ.matches); }
+  var JOURSL = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  function agenda(js){
+    var q = etat.q, moi = etat.moi && res[etat.moi] ? etat.moi : '', auj = iso(new Date()), h = '';
+    js.forEach(function(d){
+      var hd = jnum(d) * 2, items = [];
+      Object.keys(taches).forEach(function(id){
+        var t = taches[id]; if (t.statut === 'annule') return;
+        var b = bornes(t); if (b[1] < hd || b[0] > hd + 1) return;
+        if (moi && (t.personnes || []).indexOf(moi) < 0) return;
+        if (etat.site && !moi){ var tous = tousRes(t).filter(function(r){ return res[r]; }); if (tous.length ? !tous.some(function(r){ return res[r].site === etat.site; }) : (t.site && t.site !== etat.site)) return; }
+        var lb = libelle(t), r = affaire(t.ref);
+        if (q && norm([lb.ref, lb.lieu, lb.txt, lb.act, t.titre, t.lieu, t.note, r && r.client, r && r.commune].join(' ')).indexOf(q) < 0) return;
+        items.push({t: t, lb: lb, am: b[0] <= hd, pm: b[1] >= hd + 1});
+      });
+      items.sort(function(x, y){ return ((x.am ? 0 : 1) - (y.am ? 0 : 1)) || (String(x.lb.ref || x.lb.act || '') < String(y.lb.ref || y.lb.act || '') ? -1 : 1); });
+      h += '<div class="pl-ag-j' + (iso(d) === auj ? ' auj' : '') + '">' + esc(JOURSL[d.getDay()] + ' ' + d.getDate() + ' ' + MOISL[d.getMonth()]) + (iso(d) === auj ? ' <span>aujourd\'hui</span>' : '') + '</div>';
+      if (!items.length){ h += '<div class="pl-ag-v">Rien de prévu.</div>'; return; }
+      items.forEach(function(it){
+        var t = it.t, lb = it.lb, a = act[t.activite] || {}, c = a.absence ? (a.couleur || '#141414') : coulTache(t)[0];
+        var quand = it.am && it.pm ? 'Journée' : it.am ? 'Matin' : 'Après-midi';
+        var pers = (t.personnes || []).filter(function(p){ return res[p]; }).map(nomRes).join(', ');
+        var moyens = (t.vehicules || []).concat(t.materiels || []).filter(function(p){ return res[p]; }).map(function(p){ return res[p].nom || res[p].code; }).join(', ');
+        var tete = lb.ref ? (t.activite === 'a-bornage' ? '<em class="pl-rb">' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || '') : esc(lb.act || lb.txt || 'Tâche');
+        var l2 = lb.ref ? lb.txt : (lb.act ? (lb.txt || lb.lieu) : lb.lieu);
+        h += '<div class="pl-ag-c" data-t="' + esc(t.id) + '" role="button" tabindex="0" style="border-left-color:' + esc(c) + '">' +
+          '<div class="pl-ag-q">' + quand + (pers ? ' · ' + esc(pers) : '') + (t.statut === 'fait' ? ' · ✓ réalisé' : '') + '</div>' +
+          '<b>' + tete + '</b>' + (l2 ? '<div>' + esc(l2) + '</div>' : '') + (lb.ref && lb.act ? '<div class="pl-ag-s">' + esc(lb.act) + '</div>' : '') +
+          (moyens ? '<div class="pl-ag-s">' + esc(moyens) + '</div>' : '') + (t.note ? '<div class="pl-ag-n">' + esc(t.note) + '</div>' : '') + '</div>';
+      });
+    });
+    return '<div class="pl-ag">' + h + '</div>';
+  }
   function dessiner(){
     if (!root || !$('plGrid')) return;
     var js = jours(); vis = [];
@@ -296,6 +346,17 @@
     $('plAsideBtn').textContent = etat.aside ? 'Masquer « À programmer »' : 'Afficher « À programmer »';
     $('plXls').hidden = !(S.downloads() && window.XLSX);
     $('plLeg').innerHTML = sites.map(function(x){ return '<span><i style="background:' + esc(coulSite(x)) + '"></i>' + esc(x) + '</span>'; }).join('') + (sites.length > 1 ? '<span><i style="background:linear-gradient(100deg,' + coulSite(sites[0]) + ' 0 50%,' + coulSite(sites[1]) + ' 50% 100%)"></i>brigade de deux sites</span>' : '') + listeAct().filter(function(a){ return a.absence; }).map(function(a){ return '<span><i style="background:' + esc(a.couleur || '#999') + '"></i>' + esc(a.nom) + '</span>'; }).join('') + '<span>✓ réalisé</span><span>« s/réf. » : référence pas encore ouverte</span>';
+    var mob = mobile(); root.classList.toggle('pl-mob', mob);
+    $('plMoi').innerHTML = '<option value="">Tout le personnel</option>' + listeResTous('personne').map(function(r){ return '<option value="' + esc(r.id) + '"' + (r.id === etat.moi ? ' selected' : '') + '>' + esc((r.code ? r.code + ' · ' : '') + r.nom) + '</option>'; }).join('');
+    if (mob){
+      $('plGrid').innerHTML = agenda(js);
+      if (!agVu && etat.vue !== 'jour' && Object.keys(taches).length){ agVu = true; var ja = root.querySelector('.pl-ag-j.auj'); if (ja && ja !== root.querySelector('.pl-ag-j')) setTimeout(function(){ ja.scrollIntoView({block: 'start'}); }, 0); }
+      $('plAside').hidden = true; $('plMain').className = 'pl-main ferme';
+      ['plNew', 'plRes', 'plAct', 'plAsideBtn'].forEach(function(id){ $(id).hidden = !peut(); });
+      $('plPdf').hidden = !admin();
+      $('plMsg').textContent = '';
+      return;
+    }
     // lignes : ressources visibles, plus une ligne pour les tâches sans ressource
     var lignes = [], parRes = {}, sansRes = [];
     Object.keys(taches).forEach(function(id){
@@ -391,6 +452,7 @@
   function grilleEvenements(){
     root.addEventListener('click', function(e){
       var nv = e.target.closest('[data-nav]'); if (nv){ decaler(+nv.dataset.nav); return; }
+      var ag = e.target.closest('.pl-ag-c'); if (ag){ editer(taches[ag.dataset.t]); return; }
       var b = e.target.closest('.pl-b'); if (b){ editer(taches[b.dataset.t]); return; }
       var c = cellule(e); if (c){ var row = c.closest('.pl-r'), v = vis[+c.dataset.s]; if (!v) return; var d = iso(v.d), half = (v.h % 2) ? 'pm' : 'am', rid = row.dataset.res; var pre = {date_debut: d, date_fin: d, demi_debut: 'am', demi_fin: 'pm'}; if (rid && res[rid]) pre[{personne: 'personnes', vehicule: 'vehicules', materiel: 'materiels'}[res[rid].type]] = [rid]; editer(null, pre); return; }
       var li = e.target.closest('.pl-aside li[data-ref]'); if (li && e.detail >= 2) editer(null, {ref: +li.dataset.ref});
