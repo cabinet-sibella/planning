@@ -148,6 +148,7 @@
       '.pl-b.conf b{color:inherit}',
       '.pl-b.fait{opacity:.6}',
       '.pl-rb{font-style:normal;font-weight:800;color:#c8102e}',
+      '#plDeja summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:700;color:var(--muted);border-top:1px solid var(--line)}',
       '.pl-b{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}',
       '.pl-b.dep{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),inset 0 -3px 0 #141414}',
       '.pl-b.annule{opacity:.4;text-decoration:line-through}',
@@ -343,13 +344,17 @@
   // ---------- affaires à programmer (étoile du registre)
   function aside(){
     var rows = S.rows().filter(function(r){ return !r.livre && S.isProg(r); }).sort(function(a, b){ return b.ref - a.ref; });
-    var plan = {}; Object.keys(taches).forEach(function(id){ var t = taches[id]; if (t.ref && t.statut !== 'annule' && t.date_fin >= iso(new Date())) (plan[t.ref] = plan[t.ref] || []).push(t.date_debut); });
+    var plan = {}; Object.keys(taches).forEach(function(id){ var t = taches[id]; if (t.ref && t.statut !== 'annule' && (t.date_fin || t.date_debut) >= iso(new Date())) (plan[t.ref] = plan[t.ref] || []).push(t.date_debut); });
     var q = etat.q;
     if (q) rows = rows.filter(function(r){ return r._s.indexOf(q) >= 0; });
-    $('plAside').innerHTML = '<h3>À programmer <span class="small">(' + rows.length + ')</span></h3><div class="note">Affaires marquées ★ dans le registre. Glissez-en une sur une case de la grille.</div><ol>' + (rows.length ? rows.map(function(r){
+    var afaire = rows.filter(function(r){ return !plan[r.ref]; }), deja = rows.filter(function(r){ return plan[r.ref]; });
+    function li(r){
       var d = plan[r.ref]; d = d && d.sort()[0];
-      return '<li draggable="true" data-ref="' + esc(r.ref) + '" tabindex="0" title="Glisser sur le planning, ou Entrée pour planifier"><span><span class="ref">' + esc(r.lib) + '</span> <span class="client">' + esc(r.client || '') + '</span></span><span class="small">' + esc([r.commune, r.mission].filter(Boolean).join(' · ')) + '</span><span class="small">' + esc(r.avancement || '') + '</span>' + (d ? '<span class="deja">Déjà planifiée le ' + frc(d) + '</span>' : '') + '</li>';
-    }).join('') : '<li style="cursor:default"><span class="small">Aucune affaire en attente de programmation.</span></li>') + '</ol>';
+      return '<li draggable="true" data-ref="' + esc(r.ref) + '" tabindex="0" title="Glisser sur le planning, ou Entrée pour planifier"><span><span class="ref">' + esc(r.lib) + '</span> <span class="client">' + esc(r.client || '') + '</span></span><span class="small">' + esc([r.commune, r.mission].filter(Boolean).join(' · ')) + '</span><span class="small">' + esc(r.avancement || '') + '</span>' + (d ? '<span class="deja">Planifiée le ' + frc(d) + '</span>' : '') + '</li>';
+    }
+    var ouvert = $('plDeja') && $('plDeja').open;
+    $('plAside').innerHTML = '<h3>À programmer <span class="small">(' + afaire.length + ')</span></h3><div class="note">Affaires marquées ★ dans le registre et pas encore planifiées. Glissez-en une sur une case de la grille.</div><ol>' + (afaire.length ? afaire.map(li).join('') : '<li style="cursor:default"><span class="small">Aucune affaire en attente de programmation.</span></li>') + '</ol>' +
+      (deja.length ? '<details id="plDeja"' + (ouvert ? ' open' : '') + '><summary>Déjà planifiées (' + deja.length + ')</summary><ol>' + deja.map(li).join('') + '</ol></details>' : '');
   }
 
   // ---------- interactions sur la grille
