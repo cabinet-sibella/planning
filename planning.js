@@ -8,9 +8,9 @@
   // couleurs des sites, par nom ; PAL sert aux sites ajoutés plus tard
   var COUL = {'Ajaccio': '#f7c794', 'Bastia': '#b3d3f2', "L'Île-Rousse": '#b7e0ba', 'Porto-Vecchio': '#d6c2ee'};
   var PAL = ['#a9dcd6', '#f3bcd3', '#f3e3a0'];
-  var etat = {vue: 'semaine', ancre: lundi(new Date()), samedi: false, types: {personne: true, vehicule: true, materiel: true}, q: '', aside: true, site: ''};
-  try { var mem = JSON.parse(localStorage.getItem('sibella-planning') || '{}'); ['vue','samedi','types','aside','site'].forEach(function(k){ if (mem[k] != null) etat[k] = mem[k]; }); } catch (e){}
-  function garder(){ try { localStorage.setItem('sibella-planning', JSON.stringify({vue: etat.vue, samedi: etat.samedi, types: etat.types, aside: etat.aside, site: etat.site})); } catch (e){} }
+  var etat = {vue: 'semaine', ancre: lundi(new Date()), samedi: false, types: {personne: true, vehicule: false, materiel: false}, q: '', aside: true, site: ''};
+  try { var mem = JSON.parse(localStorage.getItem('sibella-planning') || '{}'); ['vue','samedi','types','aside','site'].forEach(function(k){ if (mem[k] != null && (k !== 'types' || mem.tv === 2)) etat[k] = mem[k]; }); } catch (e){}
+  function garder(){ try { localStorage.setItem('sibella-planning', JSON.stringify({tv: 2, vue: etat.vue, samedi: etat.samedi, types: etat.types, aside: etat.aside, site: etat.site})); } catch (e){} }
 
   var TYPES = [['personne', 'Personnel'], ['vehicule', 'Véhicules'], ['materiel', 'Matériel']];
   var JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
