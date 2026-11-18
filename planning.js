@@ -160,6 +160,10 @@
       '.pl-d small{font-weight:400;color:var(--muted)}',
       '.pl-hd{grid-row:2;border-left:1px solid var(--line);font-size:10.5px;color:var(--muted);padding:0 6px 5px;text-transform:uppercase;letter-spacing:.06em}',
       '.pl-hd.pm{border-left-style:dotted}',
+      '.pl-nav{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;width:24px;height:24px;padding:0;font-size:16px;line-height:1;cursor:pointer;flex:none}',
+      '.pl-nav:hover{background:var(--bg)}',
+      '.pl-navg{margin-left:auto}',
+      '.pl-navd{position:absolute;right:4px;top:3px;z-index:1}',
       '.pl-g{display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);font-weight:700;position:sticky;left:0}',
       '.pl-vide{padding:10px 12px;font-size:13px;color:var(--muted)}',
       '.pl-aside{background:var(--surface);border:1px solid var(--line);border-radius:4px;display:flex;flex-direction:column;max-height:calc(100vh - 140px);min-height:0}',
@@ -275,7 +279,7 @@
     });
     var cols = 'grid-template-columns:repeat(' + N + ',minmax(0,1fr))';
     var h = '<div class="pl-grid ' + etat.vue + '" style="--n:' + N + '">';
-    h += '<div class="pl-r pl-h"><div class="pl-n">Ressources</div><div class="pl-t" style="' + cols + '">';
+    h += '<div class="pl-r pl-h"><div class="pl-n">Ressources<button class="pl-nav pl-navg" data-nav="-1" aria-label="Période précédente" title="Période précédente">‹</button></div><div class="pl-t" style="' + cols + '"><button class="pl-nav pl-navd" data-nav="1" aria-label="Période suivante" title="Période suivante">›</button>';
     js.forEach(function(d, i){ var a = jnum(d) * 2 === aujH; h += '<div class="pl-d' + (a ? ' auj' : '') + '" style="grid-column:' + (2 * i + 1) + ' / span 2">' + esc(etat.vue === 'mois' ? JOURS[d.getDay()].slice(0, 2) + ' ' + d.getDate() : JOURS[d.getDay()] + ' ' + d.getDate()) + (etat.vue !== 'mois' && i === 0 || d.getDate() === 1 ? ' <small>' + esc(MOISL[d.getMonth()].slice(0, 4) + '.') + '</small>' : '') + '</div>'; });
     if (etat.vue !== 'mois') js.forEach(function(d, i){ h += '<div class="pl-hd" style="grid-column:' + (2 * i + 1) + '">matin</div><div class="pl-hd pm" style="grid-column:' + (2 * i + 2) + '">après-midi</div>'; });
     h += '</div></div>';
@@ -352,6 +356,7 @@
   function cellule(e){ return e.target.closest && e.target.closest('.pl-c'); }
   function grilleEvenements(){
     root.addEventListener('click', function(e){
+      var nv = e.target.closest('[data-nav]'); if (nv){ decaler(+nv.dataset.nav); return; }
       var b = e.target.closest('.pl-b'); if (b){ editer(taches[b.dataset.t]); return; }
       var c = cellule(e); if (c){ var row = c.closest('.pl-r'), v = vis[+c.dataset.s]; if (!v) return; var d = iso(v.d), half = (v.h % 2) ? 'pm' : 'am', rid = row.dataset.res; var pre = {date_debut: d, date_fin: d, demi_debut: 'am', demi_fin: 'pm'}; if (rid && res[rid]) pre[{personne: 'personnes', vehicule: 'vehicules', materiel: 'materiels'}[res[rid].type]] = [rid]; editer(null, pre); return; }
       var li = e.target.closest('.pl-aside li[data-ref]'); if (li && e.detail >= 2) editer(null, {ref: +li.dataset.ref});
