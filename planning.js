@@ -155,6 +155,10 @@
       '.pl-b.conf b{color:inherit}',
       '.pl-b.fait{opacity:.6}',
       '.pl-rb{font-style:normal;font-weight:800;color:#c8102e}',
+      '.pl-hr{font-style:normal;font-weight:800;background:rgba(255,255,255,.85);color:#141414;border-radius:3px;padding:0 4px;margin-right:4px}',
+      '.pp-hr{font-style:normal;font-weight:800;background:#fff;color:#141414;border-radius:2px;padding:0 2px}',
+      '.pl-ag-h{color:#141414;background:#fde68a;border-radius:3px;padding:0 5px;text-transform:none;letter-spacing:0}',
+      '.pl-ag-c.nuit .pl-ag-h{color:#141414!important}',
       '.pl-ag-c.nuit{background:#1a2b7c;border-color:#1a2b7c}',
       '.pl-ag-c.nuit,.pl-ag-c.nuit *{color:#fff!important}',
       '#plDeja summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:700;color:var(--muted);border-top:1px solid var(--line)}',
@@ -318,14 +322,14 @@
       h += '<div class="pl-ag-j' + (iso(d) === auj ? ' auj' : '') + '">' + esc(JOURSL[d.getDay()] + ' ' + d.getDate() + ' ' + MOISL[d.getMonth()]) + (iso(d) === auj ? ' <span>aujourd\'hui</span>' : '') + '</div>';
       if (!items.length){ h += '<div class="pl-ag-v">Rien de prévu.</div>'; return; }
       items.forEach(function(it){
-        var t = it.t, lb = it.lb, a = act[t.activite] || {}, c = a.absence ? (a.couleur || '#141414') : t.nuit ? NUIT : coulTache(t)[0];
+        var t = it.t, lb = it.lb, a = act[t.activite] || {}, c = (a.absence || t.activite === 'a-bureau') ? (a.couleur || '#141414') : t.nuit ? NUIT : coulTache(t)[0];
         var quand = (it.am && it.pm ? 'Journée' : it.am ? 'Matin' : 'Après-midi') + (t.nuit ? ' · nuit' : '');
         var pers = (t.personnes || []).filter(function(p){ return res[p]; }).map(nomRes).join(', ');
         var moyens = (t.vehicules || []).concat(t.materiels || []).filter(function(p){ return res[p]; }).map(function(p){ return res[p].nom || res[p].code; }).join(', ');
         var tete = lb.ref ? (clsRef(t) ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || '') : esc(lb.act || lb.txt || 'Tâche');
         var l2 = lb.ref ? lb.txt : (lb.act ? (lb.txt || lb.lieu) : lb.lieu);
         h += '<div class="pl-ag-c' + (t.nuit ? ' nuit' : '') + '" data-t="' + esc(t.id) + '" role="button" tabindex="0" style="border-left-color:' + esc(c) + '">' +
-          '<div class="pl-ag-q">' + quand + (pers ? ' · ' + esc(pers) : '') + (t.statut === 'fait' ? ' · ✓ réalisé' : '') + '</div>' +
+          '<div class="pl-ag-q">' + quand + (t.heures ? ' · <span class="pl-ag-h">' + esc(t.heures) + '</span>' : '') + (pers ? ' · ' + esc(pers) : '') + (t.statut === 'fait' ? ' · ✓ réalisé' : '') + '</div>' +
           '<b>' + tete + '</b>' + (l2 ? '<div>' + esc(l2) + '</div>' : '') + (lb.ref && lb.act ? '<div class="pl-ag-s">' + esc(lb.act) + '</div>' : '') +
           (moyens ? '<div class="pl-ag-s">' + esc(moyens) + '</div>' : '') + (t.note ? '<div class="pl-ag-n">' + esc(t.note) + '</div>' : '') + '</div>';
       });
@@ -350,7 +354,7 @@
     $('plSite').innerHTML = optSites(etat.site, 'Tous les sites');
     $('plAsideBtn').textContent = etat.aside ? 'Masquer « À programmer »' : 'Afficher « À programmer »';
     $('plXls').hidden = !(S.downloads() && window.XLSX);
-    $('plLeg').innerHTML = sites.map(function(x){ return '<span><i style="background:' + esc(coulSite(x)) + '"></i>' + esc(x) + '</span>'; }).join('') + (sites.length > 1 ? '<span><i style="background:linear-gradient(100deg,' + coulSite(sites[0]) + ' 0 50%,' + coulSite(sites[1]) + ' 50% 100%)"></i>brigade de deux sites</span>' : '') + listeAct().filter(function(a){ return a.absence; }).map(function(a){ return '<span><i style="background:' + esc(a.couleur || '#999') + '"></i>' + esc(a.nom) + '</span>'; }).join('') + '<span><b style="color:#c8102e">réf.</b> bornage</span><span><i style="background:#1a2b7c"></i>travaux de nuit</span><span>✓ réalisé</span><span>« s/réf. » : référence pas encore ouverte</span>';
+    $('plLeg').innerHTML = sites.map(function(x){ return '<span><i style="background:' + esc(coulSite(x)) + '"></i>' + esc(x) + '</span>'; }).join('') + (sites.length > 1 ? '<span><i style="background:linear-gradient(100deg,' + coulSite(sites[0]) + ' 0 50%,' + coulSite(sites[1]) + ' 50% 100%)"></i>brigade de deux sites</span>' : '') + listeAct().filter(function(a){ return a.absence; }).map(function(a){ return '<span><i style="background:' + esc(a.couleur || '#999') + '"></i>' + esc(a.nom) + '</span>'; }).join('') + '<span><b style="color:#c8102e">réf.</b> bornage</span><span><i style="background:#1a2b7c"></i>travaux de nuit</span><span><i style="background:' + esc((act['a-bureau'] || {}).couleur || '#bdbdbd') + '"></i>bureau</span><span>✓ réalisé</span><span>« s/réf. » : référence pas encore ouverte</span>';
     var mob = mobile(); root.classList.toggle('pl-mob', mob);
     $('plMoi').innerHTML = '<option value="">Tout le personnel</option>' + listeResTous('personne').map(function(r){ return '<option value="' + esc(r.id) + '"' + (r.id === etat.moi ? ' selected' : '') + '>' + esc((r.code ? r.code + ' · ' : '') + r.nom) + '</option>'; }).join('');
     if (mob){
@@ -385,7 +389,7 @@
       var L = Math.max(1, pistes.length);
       for (var i = 0; i < N; i++) html += '<div class="pl-c' + (i % 2 ? ' pm' : '') + (vis[i].h >> 1 === aujH >> 1 ? ' auj' : '') + '" data-s="' + i + '" style="grid-column:' + (i + 1) + ';grid-row:1 / span ' + L + '"></div>';
       items.forEach(function(it){
-        var t = it.t, lb = libelle(t), a = act[t.activite] || {}, cs = a.absence ? [a.couleur || '#141414'] : t.nuit ? [NUIT] : coulTache(t), c = cs[0], r = affaire(t.ref);
+        var t = it.t, lb = libelle(t), a = act[t.activite] || {}, cs = (a.absence || t.activite === 'a-bureau') ? [a.couleur || '#141414'] : t.nuit ? [NUIT] : coulTache(t), c = cs[0], r = affaire(t.ref);
         var fond = cs.length > 1 ? 'linear-gradient(100deg,' + cs.map(function(x, i){ return x + ' ' + Math.round(100 * i / cs.length) + '% ' + Math.round(100 * (i + 1) / cs.length) + '%'; }).join(',') + ')' : c;
         var court = etat.vue === 'mois' && (it.z - it.a) < 3;
         var titre = ([lb.act, lb.ref, lb.txt, lb.lieu].filter(Boolean).join(' · ') || 'Tâche') + ' — ' + frc(t.date_debut) + (t.demi_debut === 'pm' ? ' après-midi' : ' matin') + ' → ' + frc(t.date_fin || t.date_debut) + (t.demi_fin === 'am' ? ' matin' : ' après-midi') + (t.heures ? ' (' + t.heures + ')' : '') + ' · ' + tousRes(t).map(nomRes).join(', ') + (conf[t.id + '|' + id] ? ' · CONFLIT : ' + nomRes(id) + ' est déjà pris' : '') + (t.statut && t.statut !== 'prevu' ? ' · ' + ST[t.statut] : '');
@@ -398,7 +402,7 @@
         var l1 = court ? (lb.ref || (sansRef ? 's/réf.' : (lb.act || lb.txt || 'Tâche').slice(0, 5))) : (lb.ref ? lb.ref + ' ' + (lb.lieu || lb.txt) : sansRef ? 's/réf. ' + (lb.lieu || lb.txt) : (lb.act || lb.txt || 'Tâche')) + (dep ? ' → ' + dep : '');
         var l2 = court ? '' : [brig.length ? '(' + brig.join('/') + ')' : '', (lb.ref || sansRef) ? (lb.lieu ? lb.txt : '') : (lb.act ? (lb.txt || lb.lieu) : lb.lieu), (lb.ref || sansRef) ? lb.act : ''].filter(Boolean).join(' · ');
         if (t.statut === 'fait') l1 = '✓ ' + l1;
-        html += '<button type="button" class="pl-b' + (conf[t.id + '|' + id] ? ' conf' : '') + (t.statut === 'fait' ? ' fait' : '') + (t.statut === 'annule' ? ' annule' : '') + (hit ? '' : ' terne') + (dep ? ' dep' : '') + '" draggable="true" data-t="' + esc(t.id) + '" data-r="' + esc(id) + '" title="' + esc(titre) + '" style="grid-column:' + (it.a + 1) + ' / span ' + (it.z - it.a + 1) + ';grid-row:' + (it.k + 1) + ';background:' + esc(fond) + ';color:' + encre(c) + '"><b>' + (clsRef(t) && lb.ref && l1.indexOf(lb.ref) === 0 ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' + esc(l1.slice(lb.ref.length)) : esc(l1)) + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + '</button>';
+        html += '<button type="button" class="pl-b' + (conf[t.id + '|' + id] ? ' conf' : '') + (t.statut === 'fait' ? ' fait' : '') + (t.statut === 'annule' ? ' annule' : '') + (hit ? '' : ' terne') + (dep ? ' dep' : '') + '" draggable="true" data-t="' + esc(t.id) + '" data-r="' + esc(id) + '" title="' + esc(titre) + '" style="grid-column:' + (it.a + 1) + ' / span ' + (it.z - it.a + 1) + ';grid-row:' + (it.k + 1) + ';background:' + esc(fond) + ';color:' + encre(c) + '"><b>' + (t.heures && !court ? '<i class="pl-hr">' + esc(t.heures) + '</i>' : '') + (clsRef(t) && lb.ref && l1.indexOf(lb.ref) === 0 ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' + esc(l1.slice(lb.ref.length)) : esc(l1)) + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + '</button>';
       });
       return '<div class="pl-r" data-res="' + esc(id) + '"><div class="pl-n" style="--cg:' + esc(couleur || 'transparent') + '"><b>' + esc(nom) + '</b><span>' + esc(sous || '') + '</span></div><div class="pl-t" style="' + cols + '">' + html + '</div></div>';
     }
@@ -512,7 +516,7 @@
   function editer(t, pre){
     var nouveau = !t, f = Object.assign({nuit: false, activite: '', ref: 0, titre: '', lieu: '', date_debut: iso(new Date()), demi_debut: 'am', date_fin: '', demi_fin: 'pm', heures: '', personnes: [], vehicules: [], materiels: [], note: '', statut: 'prevu', site: ''}, t || {}, pre || {});
     if (!f.date_fin) f.date_fin = f.date_debut;
-    f._plus = !nouveau && !!(f.activite || f.titre || f.lieu || f.heures || f.note || (f.materiels || []).length);
+    f._plus = !nouveau && !!(f.titre || f.lieu || f.note || (f.materiels || []).length);
     if (nouveau){ f.vehicules = (f.vehicules || []).slice(); (f.personnes || []).forEach(function(p){ var v = res[p] && res[p].vehicule_defaut; if (v && res[v] && res[v].actif !== false && f.vehicules.indexOf(v) < 0) f.vehicules.push(v); }); }
     var acts = listeAct();
     if (!f.activite && acts.length) f.activite = '';
@@ -533,11 +537,11 @@
         '<div class="ligne" style="flex-wrap:nowrap"><label class="f" for="plFd1" style="flex:1 1 120px">Du<input id="plFd1" type="date" value="' + esc(f.date_debut) + '"></label><label class="f" for="plFh1" style="flex:0 1 112px">&nbsp;<select id="plFh1"><option value="am"' + sel(f.demi_debut !== 'pm', true) + '>matin</option><option value="pm"' + sel(f.demi_debut, 'pm') + '>après-midi</option></select></label>' +
         '<label class="f" for="plFd2" style="flex:1 1 120px">Au<input id="plFd2" type="date" value="' + esc(f.date_fin) + '"></label><label class="f" for="plFh2" style="flex:0 1 112px">&nbsp;<select id="plFh2"><option value="am"' + sel(f.demi_fin, 'am') + '>matin</option><option value="pm"' + sel(f.demi_fin !== 'am', true) + '>après-midi</option></select></label></div>' +
         '<div class="pl-q"><button type="button" data-q="j">Journée</button><button type="button" data-q="am">Matin</button><button type="button" data-q="pm">Après-midi</button><button type="button" data-q="s">Toute la semaine</button></div>' +
+        '<div class="ligne"><label class="f" for="plFa" style="flex:1 1 200px">Activité<select id="plFa"><option value="">— aucune —</option>' + acts.map(function(x){ return '<option value="' + esc(x.id) + '"' + sel(x.id, f.activite) + '>' + esc(x.nom) + '</option>'; }).join('') + '</select></label>' +
+        '<label class="f" for="plFhr" style="flex:1 1 160px">Heure du rendez-vous<input id="plFhr" type="text" maxlength="40" value="' + esc(f.heures) + '" placeholder="ex. 10h30"></label></div>' +
         '<label class="chk" for="plFnu"><input type="checkbox" id="plFnu"' + (f.nuit ? ' checked' : '') + '> Travaux de nuit (tâche affichée en bleu nuit)</label>' +
-        '<details id="plFplus"' + (f._plus ? ' open' : '') + '><summary>Plus d\'options : activité, véhicules, matériel, horaire, remarque…</summary><div class="pl-f" style="margin-top:12px">' +
-          '<label class="f" for="plFa">Activité (facultatif)<select id="plFa"><option value="">— aucune —</option>' + acts.map(function(x){ return '<option value="' + esc(x.id) + '"' + sel(x.id, f.activite) + '>' + esc(x.nom) + '</option>'; }).join('') + '</select></label>' +
+        '<details id="plFplus"' + (f._plus ? ' open' : '') + '><summary>Plus d\'options : véhicules, matériel, remarque, statut…</summary><div class="pl-f" style="margin-top:12px">' +
           (r ? blocTL : '') +
-          '<label class="f" for="plFhr">Heures (facultatif)<input id="plFhr" type="text" value="' + esc(f.heures) + '" placeholder="ex. RDV 9 h 30 sur place"></label>' +
           (nouveau ? '<div class="ligne"><label class="f" for="plFrep">Répéter<select id="plFrep"><option value="">Ne pas répéter</option><option value="j">Chaque jour ouvré</option><option value="s">Chaque semaine</option></select></label><label class="f" for="plFjq">Jusqu\'au<input id="plFjq" type="date"></label></div>' : '') +
           '<fieldset><legend>Véhicules</legend>' + caseRes('vehicule', 'vehicules', f.vehicules || [], a, b, t && t.id, siteEff) + '</fieldset>' +
           '<fieldset><legend>Matériel</legend>' + caseRes('materiel', 'materiels', f.materiels || [], a, b, t && t.id, siteEff) + '</fieldset>' +
@@ -713,11 +717,11 @@
             var it = items.filter(function(x){ return x.k === k && x.a === i; })[0];
             var hors = dH(vs[i]).getMonth() !== m ? ' hors' : '';
             if (!it){ tr += '<td class="' + (i % 2 ? 'pm' : 'am') + hors + '"></td>'; continue; }
-            var t = it.t, lb = libelle(t), a = act[t.activite] || {}, c = a.absence ? (a.couleur || '#141414') : t.nuit ? NUIT : coulTache(t)[0];
+            var t = it.t, lb = libelle(t), a = act[t.activite] || {}, c = (a.absence || t.activite === 'a-bureau') ? (a.couleur || '#141414') : t.nuit ? NUIT : coulTache(t)[0];
             var brig = (t.personnes || []).filter(function(p){ return res[p]; }).map(nomRes);
             var tete = lb.ref ? (clsRef(t) ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || lb.txt) : esc(lb.act || lb.txt || 'Tâche');
             var l2 = [brig.length > 1 ? '(' + brig.join('/') + ')' : '', lb.ref ? (lb.lieu ? lb.txt : '') : (lb.act ? (lb.txt || lb.lieu) : lb.lieu)].filter(Boolean).join(' · ');
-            tr += '<td colspan="' + (it.z - it.a + 1) + '" class="' + (i % 2 ? 'pm' : 'am') + '"><div class="pp-b" style="background:' + esc(c) + ';color:' + encre(c) + '"><b>' + (t.statut === 'fait' ? '✓ ' : '') + tete + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + (lb.ref && lb.act ? '<span>' + esc(lb.act) + '</span>' : '') + (t.note ? '<span class="pp-n">' + esc(t.note) + '</span>' : '') + '</div></td>';
+            tr += '<td colspan="' + (it.z - it.a + 1) + '" class="' + (i % 2 ? 'pm' : 'am') + '"><div class="pp-b" style="background:' + esc(c) + ';color:' + encre(c) + '"><b>' + (t.statut === 'fait' ? '✓ ' : '') + (t.heures ? '<i class="pp-hr">' + esc(t.heures) + '</i> ' : '') + tete + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + (lb.ref && lb.act ? '<span>' + esc(lb.act) + '</span>' : '') + (t.note ? '<span class="pp-n">' + esc(t.note) + '</span>' : '') + '</div></td>';
             i = it.z;
           }
           corps += tr + '</tr>';
