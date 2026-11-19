@@ -67,6 +67,8 @@
     out.sort(function(a, b){ return rangSite(a) - rangSite(b); });
     return out.length ? out.map(coulSite) : ['#efece5'];
   }
+  // référence en couleur : bleu = travaux de nuit (prioritaire), rouge = bornage
+  function clsRef(t){ return t.nuit ? 'pl-rn' : t.activite === 'a-bornage' ? 'pl-rb' : ''; }
   function nomRes(id){ var r = res[id]; return r ? (r.code || r.nom) : '?'; }
   function listeAct(){ return Object.keys(act).map(function(k){ return act[k]; }).filter(function(a){ return a.actif !== false; }).sort(function(a, b){ return ((a.ordre || 0) - (b.ordre || 0)) || (a.nom < b.nom ? -1 : 1); }); }
   function bornes(t){ return [H(t.date_debut, t.demi_debut), H(t.date_fin || t.date_debut, t.demi_fin || 'pm')]; }
@@ -152,6 +154,8 @@
       '.pl-b.conf b{color:inherit}',
       '.pl-b.fait{opacity:.6}',
       '.pl-rb{font-style:normal;font-weight:800;color:#c8102e}',
+      '.pl-rn{font-style:normal;font-weight:800;color:#fff!important;background:#0d47a1;border-radius:3px;padding:0 4px}',
+      '.pp-b em.pl-rn{color:#fff;background:#0d47a1}',
       '#plDeja summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:700;color:var(--muted);border-top:1px solid var(--line)}',
       '.pl-b{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}',
       '.pl-b.dep{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),inset 0 -3px 0 #141414}',
@@ -314,10 +318,10 @@
       if (!items.length){ h += '<div class="pl-ag-v">Rien de prévu.</div>'; return; }
       items.forEach(function(it){
         var t = it.t, lb = it.lb, a = act[t.activite] || {}, c = a.absence ? (a.couleur || '#141414') : coulTache(t)[0];
-        var quand = it.am && it.pm ? 'Journée' : it.am ? 'Matin' : 'Après-midi';
+        var quand = (it.am && it.pm ? 'Journée' : it.am ? 'Matin' : 'Après-midi') + (t.nuit ? ' · nuit' : '');
         var pers = (t.personnes || []).filter(function(p){ return res[p]; }).map(nomRes).join(', ');
         var moyens = (t.vehicules || []).concat(t.materiels || []).filter(function(p){ return res[p]; }).map(function(p){ return res[p].nom || res[p].code; }).join(', ');
-        var tete = lb.ref ? (t.activite === 'a-bornage' ? '<em class="pl-rb">' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || '') : esc(lb.act || lb.txt || 'Tâche');
+        var tete = lb.ref ? (clsRef(t) ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || '') : esc(lb.act || lb.txt || 'Tâche');
         var l2 = lb.ref ? lb.txt : (lb.act ? (lb.txt || lb.lieu) : lb.lieu);
         h += '<div class="pl-ag-c" data-t="' + esc(t.id) + '" role="button" tabindex="0" style="border-left-color:' + esc(c) + '">' +
           '<div class="pl-ag-q">' + quand + (pers ? ' · ' + esc(pers) : '') + (t.statut === 'fait' ? ' · ✓ réalisé' : '') + '</div>' +
@@ -345,7 +349,7 @@
     $('plSite').innerHTML = optSites(etat.site, 'Tous les sites');
     $('plAsideBtn').textContent = etat.aside ? 'Masquer « À programmer »' : 'Afficher « À programmer »';
     $('plXls').hidden = !(S.downloads() && window.XLSX);
-    $('plLeg').innerHTML = sites.map(function(x){ return '<span><i style="background:' + esc(coulSite(x)) + '"></i>' + esc(x) + '</span>'; }).join('') + (sites.length > 1 ? '<span><i style="background:linear-gradient(100deg,' + coulSite(sites[0]) + ' 0 50%,' + coulSite(sites[1]) + ' 50% 100%)"></i>brigade de deux sites</span>' : '') + listeAct().filter(function(a){ return a.absence; }).map(function(a){ return '<span><i style="background:' + esc(a.couleur || '#999') + '"></i>' + esc(a.nom) + '</span>'; }).join('') + '<span>✓ réalisé</span><span>« s/réf. » : référence pas encore ouverte</span>';
+    $('plLeg').innerHTML = sites.map(function(x){ return '<span><i style="background:' + esc(coulSite(x)) + '"></i>' + esc(x) + '</span>'; }).join('') + (sites.length > 1 ? '<span><i style="background:linear-gradient(100deg,' + coulSite(sites[0]) + ' 0 50%,' + coulSite(sites[1]) + ' 50% 100%)"></i>brigade de deux sites</span>' : '') + listeAct().filter(function(a){ return a.absence; }).map(function(a){ return '<span><i style="background:' + esc(a.couleur || '#999') + '"></i>' + esc(a.nom) + '</span>'; }).join('') + '<span><b style="color:#c8102e">réf.</b> bornage</span><span><b style="color:#fff;background:#0d47a1;border-radius:3px;padding:0 4px">réf.</b> travaux de nuit</span><span>✓ réalisé</span><span>« s/réf. » : référence pas encore ouverte</span>';
     var mob = mobile(); root.classList.toggle('pl-mob', mob);
     $('plMoi').innerHTML = '<option value="">Tout le personnel</option>' + listeResTous('personne').map(function(r){ return '<option value="' + esc(r.id) + '"' + (r.id === etat.moi ? ' selected' : '') + '>' + esc((r.code ? r.code + ' · ' : '') + r.nom) + '</option>'; }).join('');
     if (mob){
@@ -393,7 +397,7 @@
         var l1 = court ? (lb.ref || (sansRef ? 's/réf.' : (lb.act || lb.txt || 'Tâche').slice(0, 5))) : (lb.ref ? lb.ref + ' ' + (lb.lieu || lb.txt) : sansRef ? 's/réf. ' + (lb.lieu || lb.txt) : (lb.act || lb.txt || 'Tâche')) + (dep ? ' → ' + dep : '');
         var l2 = court ? '' : [brig.length ? '(' + brig.join('/') + ')' : '', (lb.ref || sansRef) ? (lb.lieu ? lb.txt : '') : (lb.act ? (lb.txt || lb.lieu) : lb.lieu), (lb.ref || sansRef) ? lb.act : ''].filter(Boolean).join(' · ');
         if (t.statut === 'fait') l1 = '✓ ' + l1;
-        html += '<button type="button" class="pl-b' + (conf[t.id + '|' + id] ? ' conf' : '') + (t.statut === 'fait' ? ' fait' : '') + (t.statut === 'annule' ? ' annule' : '') + (hit ? '' : ' terne') + (dep ? ' dep' : '') + '" draggable="true" data-t="' + esc(t.id) + '" data-r="' + esc(id) + '" title="' + esc(titre) + '" style="grid-column:' + (it.a + 1) + ' / span ' + (it.z - it.a + 1) + ';grid-row:' + (it.k + 1) + ';background:' + esc(fond) + ';color:' + encre(c) + '"><b>' + (t.activite === 'a-bornage' && lb.ref && l1.indexOf(lb.ref) === 0 ? '<em class="pl-rb">' + esc(lb.ref) + '</em>' + esc(l1.slice(lb.ref.length)) : esc(l1)) + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + '</button>';
+        html += '<button type="button" class="pl-b' + (conf[t.id + '|' + id] ? ' conf' : '') + (t.statut === 'fait' ? ' fait' : '') + (t.statut === 'annule' ? ' annule' : '') + (hit ? '' : ' terne') + (dep ? ' dep' : '') + '" draggable="true" data-t="' + esc(t.id) + '" data-r="' + esc(id) + '" title="' + esc(titre) + '" style="grid-column:' + (it.a + 1) + ' / span ' + (it.z - it.a + 1) + ';grid-row:' + (it.k + 1) + ';background:' + esc(fond) + ';color:' + encre(c) + '"><b>' + (clsRef(t) && lb.ref && l1.indexOf(lb.ref) === 0 ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' + esc(l1.slice(lb.ref.length)) : esc(l1)) + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + '</button>';
       });
       return '<div class="pl-r" data-res="' + esc(id) + '"><div class="pl-n" style="--cg:' + esc(couleur || 'transparent') + '"><b>' + esc(nom) + '</b><span>' + esc(sous || '') + '</span></div><div class="pl-t" style="' + cols + '">' + html + '</div></div>';
     }
@@ -505,7 +509,7 @@
     return h + '</div>';
   }
   function editer(t, pre){
-    var nouveau = !t, f = Object.assign({activite: '', ref: 0, titre: '', lieu: '', date_debut: iso(new Date()), demi_debut: 'am', date_fin: '', demi_fin: 'pm', heures: '', personnes: [], vehicules: [], materiels: [], note: '', statut: 'prevu', site: ''}, t || {}, pre || {});
+    var nouveau = !t, f = Object.assign({nuit: false, activite: '', ref: 0, titre: '', lieu: '', date_debut: iso(new Date()), demi_debut: 'am', date_fin: '', demi_fin: 'pm', heures: '', personnes: [], vehicules: [], materiels: [], note: '', statut: 'prevu', site: ''}, t || {}, pre || {});
     if (!f.date_fin) f.date_fin = f.date_debut;
     f._plus = !nouveau && !!(f.activite || f.titre || f.lieu || f.heures || f.note || (f.materiels || []).length);
     if (nouveau){ f.vehicules = (f.vehicules || []).slice(); (f.personnes || []).forEach(function(p){ var v = res[p] && res[p].vehicule_defaut; if (v && res[v] && res[v].actif !== false && f.vehicules.indexOf(v) < 0) f.vehicules.push(v); }); }
@@ -528,6 +532,7 @@
         '<div class="ligne" style="flex-wrap:nowrap"><label class="f" for="plFd1" style="flex:1 1 120px">Du<input id="plFd1" type="date" value="' + esc(f.date_debut) + '"></label><label class="f" for="plFh1" style="flex:0 1 112px">&nbsp;<select id="plFh1"><option value="am"' + sel(f.demi_debut !== 'pm', true) + '>matin</option><option value="pm"' + sel(f.demi_debut, 'pm') + '>après-midi</option></select></label>' +
         '<label class="f" for="plFd2" style="flex:1 1 120px">Au<input id="plFd2" type="date" value="' + esc(f.date_fin) + '"></label><label class="f" for="plFh2" style="flex:0 1 112px">&nbsp;<select id="plFh2"><option value="am"' + sel(f.demi_fin, 'am') + '>matin</option><option value="pm"' + sel(f.demi_fin !== 'am', true) + '>après-midi</option></select></label></div>' +
         '<div class="pl-q"><button type="button" data-q="j">Journée</button><button type="button" data-q="am">Matin</button><button type="button" data-q="pm">Après-midi</button><button type="button" data-q="s">Toute la semaine</button></div>' +
+        '<label class="chk" for="plFnu"><input type="checkbox" id="plFnu"' + (f.nuit ? ' checked' : '') + '> Travaux de nuit (référence sur fond bleu)</label>' +
         '<details id="plFplus"' + (f._plus ? ' open' : '') + '><summary>Plus d\'options : activité, véhicules, matériel, horaire, remarque…</summary><div class="pl-f" style="margin-top:12px">' +
           '<label class="f" for="plFa">Activité (facultatif)<select id="plFa"><option value="">— aucune —</option>' + acts.map(function(x){ return '<option value="' + esc(x.id) + '"' + sel(x.id, f.activite) + '>' + esc(x.nom) + '</option>'; }).join('') + '</select></label>' +
           (r ? blocTL : '') +
@@ -549,6 +554,7 @@
       f.activite = $('plFa').value; f.ref = /^\d{5}$/.test($('plFr').value.trim()) ? +$('plFr').value.trim() : 0;
       f.titre = $('plFt').value.trim(); f.lieu = $('plFe').value.trim(); f.heures = $('plFhr').value.trim();
       f.date_debut = $('plFd1').value || f.date_debut; f.demi_debut = $('plFh1').value; f.date_fin = $('plFd2').value || f.date_debut; f.demi_fin = $('plFh2').value;
+      f.nuit = $('plFnu').checked;
       f.note = $('plFn').value.trim(); f.statut = $('plFs').value; f.site = $('plFsi').value;
       ['personnes', 'vehicules', 'materiels'].forEach(function(k){ f[k] = [].slice.call(F.querySelectorAll('input[data-k="' + k + '"]:checked')).map(function(c){ return c.value; }); });
       f._plus = $('plFplus').open;
@@ -589,7 +595,7 @@
         if ($('plFr').value.trim() && !f.ref){ m.textContent = 'La référence doit compter 5 chiffres.'; return; }
         if (f.ref && S.rows().length && !affaire(f.ref) && f._forcer !== f.ref){ f._forcer = f.ref; m.textContent = 'La référence ' + f.ref + ' ne figure pas dans l\'index des références (mis à jour le ' + (S.genere() || '?') + '). Si elle vient d\'être ouverte, cliquez de nouveau sur le bouton pour l\'enregistrer quand même.'; return; }
         if (H(f.date_fin, f.demi_fin) < H(f.date_debut, f.demi_debut)){ m.textContent = 'La fin est avant le début.'; return; }
-        var now = new Date().toISOString(), base = {activite: f.activite, ref: f.ref, titre: f.titre, lieu: f.lieu, date_debut: f.date_debut, demi_debut: f.demi_debut, date_fin: f.date_fin, demi_fin: f.demi_fin, heures: f.heures, personnes: f.personnes, vehicules: f.vehicules, materiels: f.materiels, note: f.note, statut: f.statut, site: f.site, maj_le: now};
+        var now = new Date().toISOString(), base = {activite: f.activite, ref: f.ref, titre: f.titre, lieu: f.lieu, date_debut: f.date_debut, demi_debut: f.demi_debut, date_fin: f.date_fin, demi_fin: f.demi_fin, heures: f.heures, personnes: f.personnes, vehicules: f.vehicules, materiels: f.materiels, note: f.note, statut: f.statut, site: f.site, nuit: !!f.nuit, maj_le: now};
         var aff = affaire(f.ref); base.client = aff ? (aff.client || '') : (f.client || ''); base.commune = aff ? (aff.commune || '') : (f.commune || '');
         var ecr = [];
         if (nouveau){
@@ -708,7 +714,7 @@
             if (!it){ tr += '<td class="' + (i % 2 ? 'pm' : 'am') + hors + '"></td>'; continue; }
             var t = it.t, lb = libelle(t), a = act[t.activite] || {}, c = a.absence ? (a.couleur || '#141414') : coulTache(t)[0];
             var brig = (t.personnes || []).filter(function(p){ return res[p]; }).map(nomRes);
-            var tete = lb.ref ? (t.activite === 'a-bornage' ? '<em>' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || lb.txt) : esc(lb.act || lb.txt || 'Tâche');
+            var tete = lb.ref ? (clsRef(t) ? '<em class="' + clsRef(t) + '">' + esc(lb.ref) + '</em>' : esc(lb.ref)) + ' ' + esc(lb.lieu || lb.txt) : esc(lb.act || lb.txt || 'Tâche');
             var l2 = [brig.length > 1 ? '(' + brig.join('/') + ')' : '', lb.ref ? (lb.lieu ? lb.txt : '') : (lb.act ? (lb.txt || lb.lieu) : lb.lieu)].filter(Boolean).join(' · ');
             tr += '<td colspan="' + (it.z - it.a + 1) + '" class="' + (i % 2 ? 'pm' : 'am') + '"><div class="pp-b" style="background:' + esc(c) + ';color:' + encre(c) + '"><b>' + (t.statut === 'fait' ? '✓ ' : '') + tete + '</b>' + (l2 ? '<span>' + esc(l2) + '</span>' : '') + (lb.ref && lb.act ? '<span>' + esc(lb.act) + '</span>' : '') + (t.note ? '<span class="pp-n">' + esc(t.note) + '</span>' : '') + '</div></td>';
             i = it.z;
