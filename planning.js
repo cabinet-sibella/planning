@@ -148,6 +148,10 @@
       '.pl-n b{font-size:14px;white-space:nowrap}.pl-n span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.pl-t{display:grid;grid-auto-rows:minmax(30px,auto);row-gap:3px;padding-block:3px;position:relative}',
       '.pl-c{border-left:1px solid var(--line);min-height:30px}',
+      '.pl-add{z-index:2;align-self:end;justify-self:end;width:20px;height:20px;margin:0 4px 3px 0;padding:0;border:0;border-radius:50%;background:var(--rouge);color:#fff;font:700 15px/20px inherit;text-align:center;cursor:pointer;opacity:0;box-shadow:0 1px 3px rgba(0,0,0,.3)}',
+      '.pl-r:hover .pl-add{opacity:.85}',
+      '.pl-add:hover,.pl-add:focus{opacity:1!important}',
+      '@media (hover:none){.pl-add{opacity:.7}}',
       '.pl-c.pm{border-left-style:dotted}',
       '.pl-c.auj{background:color-mix(in srgb,var(--rouge) 6%,transparent)}',
       '.pl-c.sur{background:color-mix(in srgb,var(--ink) 12%,transparent)}',
@@ -392,6 +396,8 @@
       items.forEach(function(it){ var k = 0; while (pistes[k] != null && pistes[k] >= it.a) k++; pistes[k] = it.z; it.k = k; });
       var L = Math.max(1, pistes.length);
       for (var i = 0; i < N; i++) html += '<div class="pl-c' + (i % 2 ? ' pm' : '') + (vis[i].h >> 1 === aujH >> 1 ? ' auj' : '') + '" data-s="' + i + '" style="grid-column:' + (i + 1) + ';grid-row:1 / span ' + L + '"></div>';
+      // demi-journée déjà occupée : petit « + » (au survol de la ligne) pour ajouter quand même une tâche
+      if (peut() && id){ var occ = {}; items.forEach(function(it){ for (var q = it.a; q <= it.z; q++) occ[q] = 1; }); Object.keys(occ).forEach(function(q){ html += '<button type="button" class="pl-add" data-s="' + q + '" title="Ajouter une tâche sur cette demi-journée" aria-label="Ajouter une tâche" style="grid-column:' + (+q + 1) + ';grid-row:1 / span ' + L + '">+</button>'; }); }
       items.forEach(function(it){
         var t = it.t, lb = libelle(t), a = act[t.activite] || {}, cs = coulAct(t, a) ? [coulAct(t, a)] : t.nuit ? [NUIT] : coulTache(t), c = cs[0], r = affaire(t.ref);
         var fond = cs.length > 1 ? 'linear-gradient(100deg,' + cs.map(function(x, i){ return x + ' ' + Math.round(100 * i / cs.length) + '% ' + Math.round(100 * (i + 1) / cs.length) + '%'; }).join(',') + ')' : c;
@@ -467,7 +473,7 @@
       var nv = e.target.closest('[data-nav]'); if (nv){ decaler(+nv.dataset.nav); return; }
       var ag = e.target.closest('.pl-ag-c'); if (ag){ editer(taches[ag.dataset.t]); return; }
       var b = e.target.closest('.pl-b'); if (b){ editer(taches[b.dataset.t]); return; }
-      var c = cellule(e); if (c){ var row = c.closest('.pl-r'), v = vis[+c.dataset.s]; if (!v) return; var d = iso(v.d), half = (v.h % 2) ? 'pm' : 'am', rid = row.dataset.res; var pre = {date_debut: d, date_fin: d, demi_debut: 'am', demi_fin: 'pm'}; if (rid && res[rid]) pre[{personne: 'personnes', vehicule: 'vehicules', materiel: 'materiels'}[res[rid].type]] = [rid]; editer(null, pre); return; }
+      var c = cellule(e) || e.target.closest('.pl-add'); if (c){ var row = c.closest('.pl-r'), v = vis[+c.dataset.s]; if (!v) return; var d = iso(v.d), half = (v.h % 2) ? 'pm' : 'am', rid = row.dataset.res; var pre = {date_debut: d, date_fin: d, demi_debut: 'am', demi_fin: 'pm'}; if (rid && res[rid]) pre[{personne: 'personnes', vehicule: 'vehicules', materiel: 'materiels'}[res[rid].type]] = [rid]; editer(null, pre); return; }
       var li = e.target.closest('.pl-aside li[data-ref]'); if (li && e.detail >= 2) editer(null, {ref: +li.dataset.ref});
     });
     root.addEventListener('keydown', function(e){ var li = e.target.closest && e.target.closest('.pl-aside li[data-ref]'); if (li && e.key === 'Enter') editer(null, {ref: +li.dataset.ref}); });
